@@ -5,14 +5,12 @@ console script. To run this script uncomment the following lines in the
 [options.entry_points] section in setup.cfg:
 
     console_scripts =
-         fibonacci = typewriter_to_text.skeleton:run
+         tty-to-text = typewriter_to_text.skeleton:run
 
-Then run `python setup.py install` which will install the command `fibonacci`
+Then run `python setup.py install` which will install the command `tty-to-text`
 inside your current environment.
 Besides console scripts, the header (i.e. until _logger...) of this file can
 also be used as template for Python modules.
-
-Note: This skeleton file can be safely removed if not needed!
 """
 
 import argparse

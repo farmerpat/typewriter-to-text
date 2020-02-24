@@ -2,6 +2,11 @@
 typewriter-to-text
 ==================
 
+INSTALL LOCALLY
+===============
+```
+$ python setup.py install 
+```
 
 Generated with:
 ```
