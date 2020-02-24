@@ -3,6 +3,12 @@ typewriter-to-text
 ==================
 
 
+Generated with:
+```
+$putput --cookiecutter gh:mdklatt/cookiecutter-python-app typewriter-to-text
+```
+
+
 Add a short description here!
 
 
