@@ -11,42 +11,9 @@ import sys
 from PIL import Image
 import pytesseract
 import sane
+from Word import Word
 
 SCANNER = None
-
-
-class Word:
-    def __init__(
-            self,
-            text='',
-            line_num=0,
-            word_num=0,
-            par_num=0,
-            left=0,
-            top=0,
-            width=0,
-            height=0
-    ):
-        self.text = text
-        self.line_num = line_num
-        self.word_num = word_num
-        self.par_num = par_num
-        self.left = left
-        self.top = top
-        self.width = width
-        self.height = height
-
-    def __str__(self):
-        s = ''
-        s += 'text: ' + self.text + '\n'
-        s += 'line_num: ' + str(self.line_num) + '\n'
-        s += 'word_num: ' + str(self.word_num) + '\n'
-        s += 'par_num: ' + str(self.par_num) + '\n'
-        s += 'left: ' + str(self.left) + '\n'
-        s += 'top: ' + str(self.top) + '\n'
-        s += 'width: ' + str(self.width) + '\n'
-        s += 'height: ' + str(self.height) + '\n'
-        return s
 
 
 def dump_boxes(boxes, index=-1):
@@ -159,14 +126,17 @@ def image_from_scanner():
 
         params = SCANNER.get_parameters()
 
-        print('Initial Device parameters:', params, "\n Resolutions %d, "%(SCANNER.resolution))
+        print(
+            'Initial Device parameters:',
+            params,
+            "\n Resolutions %d," % (SCANNER.resolution))
 
         # try:
-            # print('setting depth')
-            # SCANNER.depth = depth
-            # print('set depth')
+        # print('setting depth')
+        # SCANNER.depth = depth
+        # print('set depth')
         # except:
-            # print('cant set depth, defaulting to %d' % params[3])
+        # print('cant set depth, defaulting to %d' % params[3])
 
         """
         try:
@@ -207,26 +177,29 @@ def image_from_scanner():
             print('setting resolution')
             SCANNER.resolution = 200
             print('set resolution')
-        except:
-            print('cant set resolution, using default')
+        except Exception as e:
+            print('cant set resolution, using default', e)
 
         try:
             print('setting br_x')
             SCANNER.br_x = br_x
             print('set br_x')
-        except:
-            print('cant set br_x')
+        except Exception as e:
+            print('cant set br_x', e)
 
         try:
             print('setting br_y')
             SCANNER.br_y = br_y
             print('set br_y')
-        except:
-            print('cant set br_y')
+        except Exception as e:
+            print('cant set br_y', e)
 
         params = SCANNER.get_parameters()
         # print('updated scanner params:', params)
-        print('Updated Device parameters:', params, "\n Resolutions %d, "%(SCANNER.resolution))
+        print(
+            'Updated Device parameters:',
+            params,
+            "\n Resolutions %d, " % (SCANNER.resolution))
 
         try:
             # TODO:
@@ -235,8 +208,8 @@ def image_from_scanner():
             # perhaps a delay before or after, or polling something on
             # SCANNER is in order...
             SCANNER.start()
-        except:
-            print('failed starting scanner')
+        except Exception as e:
+            print('failed starting scanner', e)
             eat_me = sys.exc_info()[0]
             print(eat_me)
             breakpoint()
