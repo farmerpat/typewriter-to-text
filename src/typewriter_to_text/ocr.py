@@ -106,6 +106,7 @@ def generate_line_of_words(boxes, line_number):
 
     return low
 
+
 def boxes_to_lines_of_words(boxes):
     lines = []
     num_lines = max(boxes['line_num'])
@@ -124,12 +125,13 @@ def boxes_to_lines_of_words(boxes):
 def image_from_file(file):
     return Image.open(file)
 
+
 def image_from_scanner():
     global SCANNER
 
-    depth = 14
-    mode = 'Lineart'
-    resolution = 200
+    # depth = 14
+    # mode = 'Lineart'
+    # resolution = 200
     br_x = 404
 
     # TODO: fixme
@@ -271,13 +273,14 @@ def main():
     im = image_from_file('input0.png')
     # im = image_from_scanner()
     lines = process_image(im)
+    print(type(lines))
 
     breakpoint()
 
-    if SCANNER != None:
+    if SCANNER is not None:
         SCANNER.close()
         sane.exit()
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
