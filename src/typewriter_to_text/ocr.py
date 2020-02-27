@@ -7,40 +7,13 @@ typewriter output -> text files via CanoScan
 
 # https://python-sane.readthedocs.io/en/latest/
 
+import sys
 from PIL import Image
 import pytesseract
 import sane
-import sys
 
-# print(pytesseract.image_to_string(Image.open('ocr0.png')))
-# print('attempting to parse text from input0')
-# print()
-# print(pytesseract.image_to_string(Image.open('input0.png')))
-# print('done')
+SCANNER = None
 
-# BOXES = pytesseract.image_to_boxes(Image.open("ocr1.png"))
-# print(BOXES)
-# print(type(BOXES))
-
-# parsed_string = pytesseract.image_to_string(Image.open("ocr1.png"))
-# print(parsed_string)
-
-# it seems like by leveraging this function
-# i can easily determine "furthest left margin"
-# which characters belong to the same line
-# and (hopefully) how large a glyph itself is
-# (e.g. how large is a space supposed to be
-# so that we can indent properly)
-# ...
-# I am pretty sure that I can wire up a script that will
-# scan a document, pipe the generated image to a py script
-# that does work
-# and outputs a bloody text file.
-# ...this will become my freedom from computational machines.
-# I determine my level of involvement outside of my current career.
-# this seems an appropriate use of technology to allow
-# for creativity w/o all the gross side-effects of constant
-# screen-gazing
 
 class Word:
     def __init__(
@@ -75,39 +48,41 @@ class Word:
         s += 'height: ' + str(self.height) + '\n'
         return s
 
-def dump_boxes(BOXES, index=-1):
+
+def dump_boxes(boxes, index=-1):
+    """dumps boxes"""
     if index == -1:
         # all the boxes
-        for idx in range(len(BOXES.keys())):
+        for idx in range(len(boxes.keys())):
             print("")
-            print('level:', BOXES['level'][index])
-            print('page_num', BOXES['page_num'][index])
-            print('block_num', BOXES['block_num'][index])
-            print('par_num', BOXES['par_num'][index])
-            print('line_num', BOXES['line_num'][index])
-            print('word_num', BOXES['word_num'][index])
-            print('left', BOXES['left'][index])
-            print('top', BOXES['top'][index])
-            print('width', BOXES['width'][index])
-            print('height', BOXES['height'][index])
-            print('conf', BOXES['conf'][index])
-            print('text', BOXES['text'][index])
+            print('level:', boxes['level'][index])
+            print('page_num', boxes['page_num'][index])
+            print('block_num', boxes['block_num'][index])
+            print('par_num', boxes['par_num'][index])
+            print('line_num', boxes['line_num'][index])
+            print('word_num', boxes['word_num'][index])
+            print('left', boxes['left'][index])
+            print('top', boxes['top'][index])
+            print('width', boxes['width'][index])
+            print('height', boxes['height'][index])
+            print('conf', boxes['conf'][index])
+            print('text', boxes['text'][index])
 
     else:
         print("")
-        print('level:', BOXES['level'][index])
-        print('page_num', BOXES['page_num'][index])
-        print('block_num', BOXES['block_num'][index])
-        print('par_num', BOXES['par_num'][index])
-        print('line_num', BOXES['line_num'][index])
-        print('word_num', BOXES['word_num'][index])
-        print('left', BOXES['left'][index])
-        print('top', BOXES['top'][index])
-        print('width', BOXES['width'][index])
-        print('height', BOXES['height'][index])
-        print('conf', BOXES['conf'][index])
-        print('text', BOXES['text'][index])
-        # a specific box
+        print('level:', boxes['level'][index])
+        print('page_num', boxes['page_num'][index])
+        print('block_num', boxes['block_num'][index])
+        print('par_num', boxes['par_num'][index])
+        print('line_num', boxes['line_num'][index])
+        print('word_num', boxes['word_num'][index])
+        print('left', boxes['left'][index])
+        print('top', boxes['top'][index])
+        print('width', boxes['width'][index])
+        print('height', boxes['height'][index])
+        print('conf', boxes['conf'][index])
+        print('text', boxes['text'][index])
+
 
 def generate_line_of_words(boxes, line_number):
     low = []
@@ -145,8 +120,13 @@ def boxes_to_lines_of_words(boxes):
 
     return lines
 
-def scan_page():
-    """do work"""
+
+def image_from_file(file):
+    return Image.open(file)
+
+def image_from_scanner():
+    global SCANNER
+
     depth = 14
     mode = 'Lineart'
     resolution = 200
@@ -155,8 +135,6 @@ def scan_page():
     # TODO: fixme
     # br_y = 19464192.0 / resolution
     br_y = 523
-
-
 
     # TODO: OBVIOUSLY DO ALL THIS ONCE DURING INIT.
     sane_init_result = sane.init()
@@ -173,17 +151,17 @@ def scan_page():
         scanner_name = cano_tuple[0]
         print('scanner_name:', scanner_name)
 
-        scanner = sane.open(scanner_name)
-        print('scanner:', scanner)
+        SCANNER = sane.open(scanner_name)
+        print('SCANNER:', SCANNER)
         print('fyf again')
 
-        params = scanner.get_parameters()
+        params = SCANNER.get_parameters()
 
-        print('Initial Device parameters:', params, "\n Resolutions %d, "%(scanner.resolution))
+        print('Initial Device parameters:', params, "\n Resolutions %d, "%(SCANNER.resolution))
 
         # try:
             # print('setting depth')
-            # scanner.depth = depth
+            # SCANNER.depth = depth
             # print('set depth')
         # except:
             # print('cant set depth, defaulting to %d' % params[3])
@@ -191,28 +169,28 @@ def scan_page():
         """
         try:
             print('setting mode')
-            scanner.mode = mode
+            SCANNER.mode = mode
             print('set mode')
         except:
             print('cant set mode, defaulting to %s' % params[0])
 
         try:
             print('setting preview')
-            scanner.preview = 0
+            SCANNER.preview = 0
             print('set preview')
         except:
             print('cant set preview')
 
         try:
             print('setting tl_x')
-            scanner.tl_x = 0
+            SCANNER.tl_x = 0
             print('set tl_x')
         except:
             print('cant set tl_x')
 
         try:
             print('setting tl_y')
-            scanner.tl_y = 0
+            SCANNER.tl_y = 0
             print('set tl_y')
         except:
             print('cant set tl_y')
@@ -225,78 +203,81 @@ def scan_page():
         # set res to 200 and see how it does.
         try:
             print('setting resolution')
-            scanner.resolution = 200
+            SCANNER.resolution = 200
             print('set resolution')
         except:
             print('cant set resolution, using default')
 
         try:
             print('setting br_x')
-            scanner.br_x = br_x
+            SCANNER.br_x = br_x
             print('set br_x')
         except:
             print('cant set br_x')
 
         try:
             print('setting br_y')
-            scanner.br_y = br_y
+            SCANNER.br_y = br_y
             print('set br_y')
         except:
             print('cant set br_y')
 
-        params = scanner.get_parameters()
+        params = SCANNER.get_parameters()
         # print('updated scanner params:', params)
-        print('Updated Device parameters:', params, "\n Resolutions %d, "%(scanner.resolution))
+        print('Updated Device parameters:', params, "\n Resolutions %d, "%(SCANNER.resolution))
 
-        # breakpoint()
-
-        # scanner.opt is a dict... how convenient:
-        # print(scanner.opt['resolution'])
-
-        # start scanning and grab a PIL.Image obj
         try:
-            scanner.start()
+            # TODO:
+            # this tends to fail on first runs...i suspect that
+            # it has something to do w/ scanner warm up time or something..
+            # perhaps a delay before or after, or polling something on
+            # SCANNER is in order...
+            SCANNER.start()
         except:
             print('failed starting scanner')
             eat_me = sys.exc_info()[0]
             print(eat_me)
             breakpoint()
-            scanner.close()
+            SCANNER.close()
             exit()
 
-        scanned_image = scanner.snap()
-        # TODO: if this works, inspect the image data
-        scanned_image.save('input0.png')
-        image_text = pytesseract.image_to_string(scanned_image)
-        print('text extracted from the image:', image_text)
+        return SCANNER.snap()
 
-        # BOXES = pytesseract.image_to_boxes(scanned_image)
-        BOXES = pytesseract.image_to_data(scanned_image, None, '', 0, pytesseract.Output.DICT)
-        print(BOXES)
-        print(type(BOXES))
-
-        # inspect the BOXES...see what we might do with them...
-
-        # dump_boxes(BOXES, 9)
-        dump_boxes(BOXES)
-
-        # there may be a more pythony way, but
-        # it seems like collapsing BOXES
-        # into a data structure grouped by line
-        # or perhaps words
-        # or perhaps Line is a collection of Words
-        # among other things.
-        # so we could explode into words first...
-        # would be a fine approach
-
-        # ...word_num of 0 is scattered throughout...
-        # perhaps it means "a space, so not part of a word...
-        lines = boxes_to_lines_of_words(BOXES)
-        breakpoint()
-        scanner.close()
     else:
         print("cano_tuple_list empty")
+        return None
 
-    sane.exit()
 
-scan_page()
+def process_image(im):
+    image_text = pytesseract.image_to_string(im)
+    print('text extracted from the image:', image_text)
+
+    # BOXES = pytesseract.image_to_boxes(im)
+    BOXES = pytesseract.image_to_data(im, None, '', 0, pytesseract.Output.DICT)
+    print(BOXES)
+    print(type(BOXES))
+
+    dump_boxes(BOXES)
+
+    lines = boxes_to_lines_of_words(BOXES)
+    print("lines:", lines)
+    return lines
+
+
+def main():
+    """do work"""
+    global SCANNER
+
+    im = image_from_file('input0.png')
+    # im = image_from_scanner()
+    lines = process_image(im)
+
+    breakpoint()
+
+    if SCANNER != None:
+        SCANNER.close()
+        sane.exit()
+
+
+if __name__=='__main__':
+    main()
