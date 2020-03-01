@@ -58,6 +58,7 @@ def generate_line_of_words(boxes, line_number):
     # then we can create a new Word
     # initialize it w/ matching index things
     # and push it onto low
+    breakpoint()
     for idx in range(len(boxes['line_num'])):
         ln = boxes['line_num'][idx]
         if ln == line_number:
@@ -76,7 +77,11 @@ def generate_line_of_words(boxes, line_number):
 
 def boxes_to_lines_of_words(boxes):
     lines = []
+
+    # this is actually the nubmer of characters.
+    # number of lines is probably number of \n
     num_lines = max(boxes['line_num'])
+    print('num lines according to boxes_to_lines_of_words:', num_lines)
 
     if num_lines == 0:
         return lines
@@ -212,7 +217,6 @@ def image_from_scanner():
             print('failed starting scanner', e)
             eat_me = sys.exc_info()[0]
             print(eat_me)
-            breakpoint()
             SCANNER.close()
             exit()
 
@@ -226,17 +230,32 @@ def image_from_scanner():
 def process_image(im):
     image_text = pytesseract.image_to_string(im)
     print('text extracted from the image:', image_text)
+    print('num lines according to image_to_string:', len(image_text))
+
+    # this is the line count i expect
+    alt_num_lines = image_text.count('\n')
+    print('alt_num_lines:', alt_num_lines)
 
     # BOXES = pytesseract.image_to_boxes(im)
     BOXES = pytesseract.image_to_data(im, None, '', 0, pytesseract.Output.DICT)
-    print(BOXES)
-    print(type(BOXES))
+    # print(BOXES)
+    # print(type(BOXES))
 
-    dump_boxes(BOXES)
+    # dump_boxes(BOXES)
 
     lines = boxes_to_lines_of_words(BOXES)
-    print("lines:", lines)
     return lines
+
+
+def pluck_left_most_words(lines):
+    # iterate over each of the lines, grab the one
+    # w/ the
+    # 0 seems empty...
+    line = lines[1]
+    for w in line:
+        print(w.left, w.text)
+
+    return []
 
 
 def main():
@@ -246,9 +265,13 @@ def main():
     im = image_from_file('input0.png')
     # im = image_from_scanner()
     lines = process_image(im)
-    print(type(lines))
 
+    left_most_words = pluck_left_most_words(lines)
+    print('left_most_words:', left_most_words)
+
+    # at this point, i should have enough info to calculate indentation...
     breakpoint()
+    print(type(lines))
 
     if SCANNER is not None:
         SCANNER.close()
