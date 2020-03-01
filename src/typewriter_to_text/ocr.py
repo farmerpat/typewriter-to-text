@@ -11,42 +11,9 @@ import sys
 from PIL import Image
 import pytesseract
 import sane
+from Word import Word
 
 SCANNER = None
-
-
-class Word:
-    def __init__(
-            self,
-            text='',
-            line_num=0,
-            word_num=0,
-            par_num=0,
-            left=0,
-            top=0,
-            width=0,
-            height=0
-    ):
-        self.text = text
-        self.line_num = line_num
-        self.word_num = word_num
-        self.par_num = par_num
-        self.left = left
-        self.top = top
-        self.width = width
-        self.height = height
-
-    def __str__(self):
-        s = ''
-        s += 'text: ' + self.text + '\n'
-        s += 'line_num: ' + str(self.line_num) + '\n'
-        s += 'word_num: ' + str(self.word_num) + '\n'
-        s += 'par_num: ' + str(self.par_num) + '\n'
-        s += 'left: ' + str(self.left) + '\n'
-        s += 'top: ' + str(self.top) + '\n'
-        s += 'width: ' + str(self.width) + '\n'
-        s += 'height: ' + str(self.height) + '\n'
-        return s
 
 
 def dump_boxes(boxes, index=-1):
@@ -91,6 +58,7 @@ def generate_line_of_words(boxes, line_number):
     # then we can create a new Word
     # initialize it w/ matching index things
     # and push it onto low
+    breakpoint()
     for idx in range(len(boxes['line_num'])):
         ln = boxes['line_num'][idx]
         if ln == line_number:
@@ -106,9 +74,14 @@ def generate_line_of_words(boxes, line_number):
 
     return low
 
+
 def boxes_to_lines_of_words(boxes):
     lines = []
+
+    # this is actually the nubmer of characters.
+    # number of lines is probably number of \n
     num_lines = max(boxes['line_num'])
+    print('num lines according to boxes_to_lines_of_words:', num_lines)
 
     if num_lines == 0:
         return lines
@@ -124,12 +97,13 @@ def boxes_to_lines_of_words(boxes):
 def image_from_file(file):
     return Image.open(file)
 
+
 def image_from_scanner():
     global SCANNER
 
-    depth = 14
-    mode = 'Lineart'
-    resolution = 200
+    # depth = 14
+    # mode = 'Lineart'
+    # resolution = 200
     br_x = 404
 
     # TODO: fixme
@@ -157,14 +131,17 @@ def image_from_scanner():
 
         params = SCANNER.get_parameters()
 
-        print('Initial Device parameters:', params, "\n Resolutions %d, "%(SCANNER.resolution))
+        print(
+            'Initial Device parameters:',
+            params,
+            "\n Resolutions %d," % (SCANNER.resolution))
 
         # try:
-            # print('setting depth')
-            # SCANNER.depth = depth
-            # print('set depth')
+        # print('setting depth')
+        # SCANNER.depth = depth
+        # print('set depth')
         # except:
-            # print('cant set depth, defaulting to %d' % params[3])
+        # print('cant set depth, defaulting to %d' % params[3])
 
         """
         try:
@@ -205,26 +182,29 @@ def image_from_scanner():
             print('setting resolution')
             SCANNER.resolution = 200
             print('set resolution')
-        except:
-            print('cant set resolution, using default')
+        except Exception as e:
+            print('cant set resolution, using default', e)
 
         try:
             print('setting br_x')
             SCANNER.br_x = br_x
             print('set br_x')
-        except:
-            print('cant set br_x')
+        except Exception as e:
+            print('cant set br_x', e)
 
         try:
             print('setting br_y')
             SCANNER.br_y = br_y
             print('set br_y')
-        except:
-            print('cant set br_y')
+        except Exception as e:
+            print('cant set br_y', e)
 
         params = SCANNER.get_parameters()
         # print('updated scanner params:', params)
-        print('Updated Device parameters:', params, "\n Resolutions %d, "%(SCANNER.resolution))
+        print(
+            'Updated Device parameters:',
+            params,
+            "\n Resolutions %d, " % (SCANNER.resolution))
 
         try:
             # TODO:
@@ -233,11 +213,10 @@ def image_from_scanner():
             # perhaps a delay before or after, or polling something on
             # SCANNER is in order...
             SCANNER.start()
-        except:
-            print('failed starting scanner')
+        except Exception as e:
+            print('failed starting scanner', e)
             eat_me = sys.exc_info()[0]
             print(eat_me)
-            breakpoint()
             SCANNER.close()
             exit()
 
@@ -251,17 +230,32 @@ def image_from_scanner():
 def process_image(im):
     image_text = pytesseract.image_to_string(im)
     print('text extracted from the image:', image_text)
+    print('num lines according to image_to_string:', len(image_text))
+
+    # this is the line count i expect
+    alt_num_lines = image_text.count('\n')
+    print('alt_num_lines:', alt_num_lines)
 
     # BOXES = pytesseract.image_to_boxes(im)
     BOXES = pytesseract.image_to_data(im, None, '', 0, pytesseract.Output.DICT)
-    print(BOXES)
-    print(type(BOXES))
+    # print(BOXES)
+    # print(type(BOXES))
 
-    dump_boxes(BOXES)
+    # dump_boxes(BOXES)
 
     lines = boxes_to_lines_of_words(BOXES)
-    print("lines:", lines)
     return lines
+
+
+def pluck_left_most_words(lines):
+    # iterate over each of the lines, grab the one
+    # w/ the
+    # 0 seems empty...
+    line = lines[1]
+    for w in line:
+        print(w.left, w.text)
+
+    return []
 
 
 def main():
@@ -272,12 +266,17 @@ def main():
     # im = image_from_scanner()
     lines = process_image(im)
 
-    breakpoint()
+    left_most_words = pluck_left_most_words(lines)
+    print('left_most_words:', left_most_words)
 
-    if SCANNER != None:
+    # at this point, i should have enough info to calculate indentation...
+    breakpoint()
+    print(type(lines))
+
+    if SCANNER is not None:
         SCANNER.close()
         sane.exit()
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
