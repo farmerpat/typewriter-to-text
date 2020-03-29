@@ -12,6 +12,10 @@ from PIL import Image
 import pytesseract
 import sane
 from Word import Word
+import tty
+import termios
+from datetime import datetime
+import os
 
 SCANNER = None
 
@@ -58,7 +62,6 @@ def generate_line_of_words(boxes, line_number):
     # then we can create a new Word
     # initialize it w/ matching index things
     # and push it onto low
-    breakpoint()
     for idx in range(len(boxes['line_num'])):
         ln = boxes['line_num'][idx]
         if ln == line_number:
@@ -75,6 +78,111 @@ def generate_line_of_words(boxes, line_number):
     return low
 
 
+# and Word is in Word.py
+class Line:
+    def __init__(self, words=[]):
+        self.words = words
+
+
+class Paragraph:
+    def __init__(self, lines=[]):
+        self.lines = lines
+
+
+class Block:
+    def __init__(self, paragraphs=[]):
+        self.paragraphs = paragraphs
+
+
+def boxes_to_blocks(boxes):
+    # print(boxes)
+
+    blocks = []
+
+    levels = boxes['level']
+    page_nums = boxes['page_num']
+    block_nums = boxes['block_num']
+    paragraph_nums = boxes['par_num']
+    line_nums = boxes['line_num']
+    word_nums = boxes['word_num']
+    lefts = boxes['left']
+    tops = boxes['top']
+    widths = boxes['width']
+    heights = boxes['height']
+    confs = boxes['conf']
+    texts = boxes['text']
+
+    # what i have been referring to as a paragraph is actually a "block"
+    # in their terminology.
+    current_block_number = -1
+
+    this_paragraph = {
+        'levels': [],
+        'page_nums': [],
+        'paragraph_nums': [],
+        'line_nums': [],
+        'word_nums': [],
+        'lefts': [],
+        'tops': [],
+        'widths': [],
+        'heights': [],
+        'confs': [],
+        'texts': []
+    }
+
+    for i in range(len(texts)):
+        level = levels[i]
+        page_num = page_nums[i]
+        block_num = block_nums[i]
+        paragraph_num = paragraph_nums[i]
+        line_num = line_nums[i]
+        word_num = word_nums[i]
+        left = lefts[i]
+        top = tops[i]
+        width = widths[i]
+        height = heights[i]
+        conf = confs[i]
+        text = texts[i]
+
+        if block_num != current_block_number:
+            if current_block_number > -1:
+                blocks.append(this_paragraph)
+
+            current_block_number = block_num
+            # TODO
+            # these should probably be Words (or something) instead...
+            this_paragraph = {
+                'levels': [level],
+                'page_nums': [page_num],
+                'paragraph_nums': [paragraph_num],
+                'line_nums': [line_num],
+                'block_nums': [block_num],
+                'word_nums': [word_num],
+                'lefts': [left],
+                'tops': [top],
+                'widths': [width],
+                'heights': [height],
+                'confs': [conf],
+                'texts': [text]
+            }
+        else:
+            this_paragraph['levels'].append(level)
+            this_paragraph['page_nums'].append(page_num)
+            this_paragraph['paragraph_nums'].append(paragraph_num)
+            this_paragraph['line_nums'].append(line_num)
+            this_paragraph['word_nums'].append(word_num)
+            this_paragraph['lefts'].append(left)
+            this_paragraph['tops'].append(top)
+            this_paragraph['widths'].append(width)
+            this_paragraph['heights'].append(height)
+            this_paragraph['confs'].append(conf)
+            this_paragraph['texts'].append(text)
+
+    blocks.append(this_paragraph)
+
+    return blocks
+
+
 def boxes_to_lines_of_words(boxes):
     lines = []
 
@@ -86,6 +194,7 @@ def boxes_to_lines_of_words(boxes):
     if num_lines == 0:
         return lines
 
+    # THIS IS LOOKING @ THE DATA INCORRECTLY.
     for ln in range(num_lines):
         # well the zeroth line maybe we don't care about...
         words_in_line = generate_line_of_words(boxes, ln)
@@ -237,14 +346,27 @@ def process_image(im):
     print('alt_num_lines:', alt_num_lines)
 
     # BOXES = pytesseract.image_to_boxes(im)
-    BOXES = pytesseract.image_to_data(im, None, '', 0, pytesseract.Output.DICT)
+    # BOXES = pytesseract.image_to_data(im, lang=None, config='', nice=0,
+    #                                   output_type=pytesseract.Output.STRING)
+    BOXES = pytesseract.image_to_data(im, lang=None, config='', nice=0,
+                                      output_type='dict')
+
+    # pytesseract.image_to_data()
+
     # print(BOXES)
+    # breakpoint()
     # print(type(BOXES))
 
     # dump_boxes(BOXES)
 
-    lines = boxes_to_lines_of_words(BOXES)
-    return lines
+    # lines = boxes_to_lines_of_words(BOXES)
+    blocks = None
+    blocks = boxes_to_blocks(BOXES)
+
+    # foreach block, make a new Block
+    # maybe the simplest thing i can do is
+    # have each line know by how many tabs it is indented.
+    return blocks
 
 
 def pluck_left_most_words(lines):
@@ -258,20 +380,118 @@ def pluck_left_most_words(lines):
     return []
 
 
+class GetCh:
+    def __call__(self):
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+
+class Book:
+    def __init__(self):
+        self.page_count = 0
+        self.current_page = 0
+        self.pages = []
+        self.title = None
+        self.library_location = '/home/patrick/library/'
+
+    def add_page(self):
+        im = image_from_scanner()
+        page = pytesseract.image_to_string(im)
+        self.pages.append(page)
+
+    def get_pages(self):
+        return self.pages
+
+    def write_to_library(self):
+        if len(self.pages) == 0:
+            print("there are no pages, and so nothing to export...bailing")
+            return
+
+        if self.title is None:
+            self.title = str(datetime.timestamp(datetime.now())).split('.')[0]
+
+        # this added slash may be extraneous...
+        book_dir = self.library_location + '/' + self.title
+
+        print("book_dir: " + book_dir)
+
+        if os.path.exists(book_dir):
+            raise Exception('{} already exists. will not overwrite'.format(book_dir))
+
+        print("looks like " + book_dir + " DNE yet. will create it")
+
+        os.mkdir(book_dir)
+
+        page_number = 0
+        # foreach one of pages, dump every line to file page_number
+        # inc page_number, continue.
+        for page in self.pages:
+            lines = page.split("\n")
+            # this_file_name = book_dir + str(page_number) + '.txt'
+            this_file_name = book_dir + '/' + str(page_number) + '.txt'
+            this_file = open(this_file_name, "w+")
+            print("writing lines to " + this_file_name)
+
+            # since i exploded all newlines, this does not serve.
+            # this_file.writelines(lines)
+
+            for line in lines:
+                this_file.write(line + "\n")
+
+            this_file.close()
+            print("wrote lines to " + this_file_name)
+            page_number += 1
+
+
 def main():
     """do work"""
     global SCANNER
 
-    im = image_from_file('input0.png')
-    # im = image_from_scanner()
-    lines = process_image(im)
+    getch = GetCh()
 
-    left_most_words = pluck_left_most_words(lines)
-    print('left_most_words:', left_most_words)
+    print("starting book.")
+
+    book = Book()
+    book.title = "typewriter_output"
+
+    book.write_to_library()
+
+    print("stick a page in the scanner.")
+    print("press y when ready. any other key will bail.")
+    keep_going = getch()
+
+    while keep_going == 'y':
+        book.add_page()
+        print("stick a page in the scanner.")
+        print("press y when ready. any other key will bail.")
+        keep_going = getch()
+
+    book.write_to_library()
+    # im = image_from_file('input0_small.png')
+    # paragraphs = process_image(im)
+    # s = pytesseract.image_to_string(im)
+    # print(s)
+
+    # print(paragraphs)
+    # for p in paragraphs:
+        # print(p)
+        # print("\n")
+
+    breakpoint()
+
+    # left_most_words = pluck_left_most_words(lines)
+    # print('left_most_words:', left_most_words)
 
     # at this point, i should have enough info to calculate indentation...
-    breakpoint()
-    print(type(lines))
+    # breakpoint()
+    # print(type(lines))
 
     if SCANNER is not None:
         SCANNER.close()
