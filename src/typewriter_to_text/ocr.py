@@ -461,8 +461,6 @@ def main():
     book = Book()
     book.title = "typewriter_output"
 
-    book.write_to_library()
-
     print("stick a page in the scanner.")
     print("press y when ready. any other key will bail.")
     keep_going = getch()
