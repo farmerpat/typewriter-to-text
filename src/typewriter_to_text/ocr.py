@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
 typewriter output -> text files via CanoScan
+
+YOU MUST RUN AS ./ocr.py (as opposed to $ python ocr.py) TO AVOID FAILURE
 """
 
 # https://pypi.org/project/pytesseract/
