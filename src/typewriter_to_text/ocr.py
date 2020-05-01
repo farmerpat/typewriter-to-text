@@ -223,6 +223,7 @@ def image_from_scanner():
     sane_init_result = sane.init()
     print(sane_init_result)
 
+    print('getting available devices')
     devices = sane.get_devices(True)
     print('available devices: ', devices)
 
@@ -403,8 +404,12 @@ class Book:
 
     def add_page(self):
         im = image_from_scanner()
-        page = pytesseract.image_to_string(im)
-        self.pages.append(page)
+        if im is not None:
+            page = pytesseract.image_to_string(im)
+            self.pages.append(page)
+            return True
+        else:
+            return False
 
     def get_pages(self):
         return self.pages
@@ -466,10 +471,13 @@ def main():
     keep_going = getch()
 
     while keep_going == 'y':
-        book.add_page()
-        print("stick a page in the scanner.")
-        print("press y when ready. any other key will bail.")
-        keep_going = getch()
+        if book.add_page():
+            print("stick a page in the scanner.")
+            print("press y when ready. any other key will bail.")
+            keep_going = getch()
+        else:
+            print("book.add_page returned False. that's an error")
+            keep_going = 'n'
 
     book.write_to_library()
     # im = image_from_file('input0_small.png')
